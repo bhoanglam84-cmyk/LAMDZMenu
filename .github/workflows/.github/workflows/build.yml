@@ -1,0 +1,40 @@
+#!/bin/bash
+set -e
+
+APP="LamdzMenu"
+OUTPUT="LamdzMenu.tipa"
+SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+
+echo "🔨 Compiling dylib..."
+clang -shared \
+  -fmodules \
+  -fobjc-arc \
+  -isysroot $SDK \
+  -arch arm64 \
+  -framework UIKit \
+  -framework Foundation \
+  -I src \
+  -o LamdzMenu.dylib \
+  src/LamdzMenu.m \
+  src/AimbotCore.m \
+  src/ESPOverlay.m \
+  src/AntiDetect.m
+
+echo "📦 Packaging .tipa..."
+rm -rf build Payload $OUTPUT
+mkdir -p build/$APP.app/Frameworks
+mkdir -p Payload
+
+cp LamdzMenu.dylib build/$APP.app/Frameworks/
+cp Info.plist build/$APP.app/
+
+# Fake binary
+printf '#!/bin/sh\nexit 0' > build/$APP.app/$APP
+chmod +x build/$APP.app/$APP
+
+cp -r build/$APP.app Payload/
+zip -r9 temp.ipa Payload/
+mv temp.ipa $OUTPUT
+
+echo "✅ Done: $OUTPUT"
+ls -lh $OUTPUT
